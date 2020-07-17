@@ -21,4 +21,7 @@ public interface MovementWardIoOperationRepository extends JpaRepository<Movemen
 
     @Query(value = "SELECT * FROM MEDICALDSRSTOCKMOVWARD WHERE MMVN_PAT_ID = :patId", nativeQuery= true)
     ArrayList<MovementWard> findWardMovementPat(@Param("patId") Integer patId);
+    
+    @Query(value = "select movWard from MovementWard movWard")
+    ArrayList<MovementWard> findAll();
 }

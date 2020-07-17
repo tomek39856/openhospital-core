@@ -113,6 +113,7 @@ public class MedicalStockWardIoOperations
 	
 
 		MovementWard savedMovement = movementRepository.save(movement);
+		MovementWard res = null;
 		if (savedMovement.getWardTo() != null) {
 			// We have to register also the income movement for the destination Ward
 			MovementWard destinationWardIncomeMovement = new MovementWard();
@@ -124,10 +125,10 @@ public class MedicalStockWardIoOperations
 			destinationWardIncomeMovement.setWard(savedMovement.getWardTo());
 			destinationWardIncomeMovement.setWardFrom(savedMovement.getWard());
 			destinationWardIncomeMovement.setlot(savedMovement.getLot());
-			movementRepository.save(destinationWardIncomeMovement);
+			res = movementRepository.save(destinationWardIncomeMovement);
 		}
 		
-		if (savedMovement != null) {
+		if (savedMovement != null && res != null) {
 			updateStockWardQuantity(movement);
 		}
 		result = (savedMovement != null);
@@ -314,5 +315,22 @@ public class MedicalStockWardIoOperations
 			 }
 		}
 		return medicalWardsQty;
+	}
+	
+	
+	public List<MedicalWard> findAll() throws OHServiceException 
+	{
+		return repository.findAll();
+	}
+	
+	public List<MedicalWard> findAllWhereWard(Ward ward) throws OHServiceException 
+	{
+		return repository.findAllWhereWard(ward.getCode());
+	}
+	
+	
+	public ArrayList<MovementWard> findAllMovement() throws OHServiceException 
+	{
+		return movementRepository.findAll();
 	}
 }

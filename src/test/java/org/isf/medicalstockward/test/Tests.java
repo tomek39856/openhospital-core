@@ -6,6 +6,9 @@ import static org.junit.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.isf.examination.model.PatientExamination;
 import org.isf.medicals.model.Medical;
@@ -333,13 +336,54 @@ public class Tests
 			jpa.persist(patient);
 			jpa.persist(lot);
 			jpa.commitTransaction();
+
+			List<MedicalWard> res0_A = medicalIoOperation.findAll();
+			List<MedicalWard> res1_A = medicalIoOperation.findAllWhereWard(wardTo);
+			List<MedicalWard> res3_A= medicalIoOperation.findAllWhereWard(ward);
+			List<MovementWard> resMov0_A = medicalIoOperation.findAllMovement();
+			
+			//jpa.beginTransaction();	
 			movementWard = testMovementWard.setup(ward, patient, medical, wardTo, null, lot, false);
 			result = medicalIoOperation.newMovementWard(movementWard);
-			Double quantity = (double) medicalIoOperation.getCurrentQuantityInWard(wardTo, medical);
+			List<MedicalWard> res0_B = medicalIoOperation.findAll();
+			List<MedicalWard> res1_B = medicalIoOperation.findAllWhereWard(wardTo);
+			List<MedicalWard> res3_B= medicalIoOperation.findAllWhereWard(ward);
+			List<MovementWard> resMov0_B = medicalIoOperation.findAllMovement();
+			//jpa.commitTransaction();
 			
 			_checkMovementWardIntoDb(movementWard.getCode());
-			jpa.commitTransaction();
-			assertEquals(quantity, movementWard.getQuantity());
+			
+			List<MedicalWard> res0_C = medicalIoOperation.findAll();
+			List<MedicalWard> res1_C = medicalIoOperation.findAllWhereWard(wardTo);
+			List<MedicalWard> res3_C = medicalIoOperation.findAllWhereWard(ward);
+			List<MovementWard> resMov0_C = medicalIoOperation.findAllMovement();
+			
+			List<MedicalWard> res0 = medicalIoOperation.findAll();
+			
+			List<MedicalWard> res1 = medicalIoOperation.findAllWhereWard(wardTo);
+			
+			List<MedicalWard> res3= medicalIoOperation.findAllWhereWard(ward);
+			
+			List<MovementWard> resMov0 = medicalIoOperation.findAllMovement();
+			
+			Double quantity1 = (double) medicalIoOperation.getCurrentQuantityInWard(movementWard.getWard(), medical);
+			Double quantity2 = (double) medicalIoOperation.getCurrentQuantityInWard(ward, medical);
+			Double quantity3 = (double) medicalIoOperation.getCurrentQuantityInWard(wardTo, medical);
+							
+			assertEquals(quantity1, movementWard.getQuantity());
+			assertEquals(quantity2, movementWard.getQuantity());
+			
+			Iterator<MovementWard> ite = resMov0.iterator();
+			Double total = (double) 0;
+			while(ite.hasNext()){
+				MovementWard mw = ite.next();
+				if(medical.getCode().equals(mw.getMedical().getCode())){
+					System.out.println(mw.getQuantity());
+					total = total + mw.getQuantity();
+				}
+			}
+			
+			assertEquals(quantity3, total );
 		} 
 		catch (Exception e) 
 		{

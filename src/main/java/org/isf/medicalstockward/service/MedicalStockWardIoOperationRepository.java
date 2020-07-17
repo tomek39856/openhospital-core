@@ -57,4 +57,7 @@ public interface MedicalStockWardIoOperationRepository extends JpaRepository<Med
     @Query(value = "select medWard from MedicalWard medWard where medWard.id.ward.code=:ward")
     List<MedicalWard> findAllWhereWard(@Param("ward") String wordCode);
 
+    @Query(value = "select medWard from MedicalWard medWard")
+    List<MedicalWard> findAll();
+    
 }
