@@ -22,8 +22,8 @@
 package org.isf.patient;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
 
+import org.isf.OHCoreTestCase;
 import org.isf.examination.model.PatientExamination;
 import org.isf.examination.service.ExaminationIoOperationRepository;
 import org.isf.examination.test.TestPatientExamination;
@@ -44,10 +44,13 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @RunWith(SpringRunner.class)
-@ContextConfiguration(locations = { "classpath:applicationContext.xml" })
-public class MergePatientTests {
+@ContextConfiguration(locations = {"classpath:applicationContext.xml"})
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
+public class MergePatientTests extends OHCoreTestCase {
 
 	private static TestPatient testPatient;
 	private static TestPatientExamination testPatientExamination;
@@ -72,63 +75,50 @@ public class MergePatientTests {
 	}
 
 	@Before
-	@After
 	public void setUp() throws OHException {
-		visitsIoOperationRepository.deleteAll();
-		examinationIoOperationRepository.deleteAll();
-		patientIoOperationRepository.deleteAll();
+		super.cleanH2InMemoryDb();
 		testPatientMergedEventListener.setShouldFail(false);
 	}
 
 	@Test
 	public void testMergePatientHistory() throws OHException, OHServiceException {
-		try {
-			// given:
-			Patient mergedPatient = patientIoOperationRepository.save(testPatient.setup(false));
-			Patient obsoletePatient = patientIoOperationRepository.save(testPatient.setup(false));
-			Visit visit = setupVisitAndAssignPatient(obsoletePatient);
-			PatientExamination patientExamination = setupPatientExaminationAndAssignPatient(obsoletePatient);
+		// given:
+		Patient mergedPatient = patientIoOperationRepository.save(testPatient.setup(false));
+		Patient obsoletePatient = patientIoOperationRepository.save(testPatient.setup(false));
+		Visit visit = setupVisitAndAssignPatient(obsoletePatient);
+		PatientExamination patientExamination = setupPatientExaminationAndAssignPatient(obsoletePatient);
 
-			// when:
-			patientIoOperation.mergePatientHistory(mergedPatient, obsoletePatient);
+		// when:
+		patientIoOperation.mergePatientHistory(mergedPatient, obsoletePatient);
 
-			// then:
-			assertThatObsoletePatientWasDeletedAndMergedIsTheActiveOne(mergedPatient, obsoletePatient);
-			assertThatVisitWasMovedFromObsoleteToMergedPatient(visit, mergedPatient);
-			assertThatExaminationWasMovedFromObsoleteToMergedPatient(patientExamination, mergedPatient);
-			assertThatPatientMergedEventWasSent(mergedPatient, obsoletePatient);
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail();
-		}
+		// then:
+		assertThatObsoletePatientWasDeletedAndMergedIsTheActiveOne(mergedPatient, obsoletePatient);
+		assertThatVisitWasMovedFromObsoleteToMergedPatient(visit, mergedPatient);
+		assertThatExaminationWasMovedFromObsoleteToMergedPatient(patientExamination, mergedPatient);
+		assertThatPatientMergedEventWasSent(mergedPatient, obsoletePatient);
 	}
 
 	@Test
 	public void testWholeMergeOperationShouldBeRolledBackWhenOneOfUpdateOperationsFails() throws OHException, OHServiceException {
+		// given:
+		Patient mergedPatient = patientIoOperationRepository.save(testPatient.setup(false));
+		Patient obsoletePatient = patientIoOperationRepository.save(testPatient.setup(false));
+		Visit visit = setupVisitAndAssignPatient(obsoletePatient);
+		PatientExamination patientExamination = setupPatientExaminationAndAssignPatient(obsoletePatient);
+		testPatientMergedEventListener.setShouldFail(true);
+
+		// when:
 		try {
-			// given:
-			Patient mergedPatient = patientIoOperationRepository.save(testPatient.setup(false));
-			Patient obsoletePatient = patientIoOperationRepository.save(testPatient.setup(false));
-			Visit visit = setupVisitAndAssignPatient(obsoletePatient);
-			PatientExamination patientExamination = setupPatientExaminationAndAssignPatient(obsoletePatient);
-			testPatientMergedEventListener.setShouldFail(true);
-
-			// when:
-			try {
-				patientIoOperation.mergePatientHistory(mergedPatient, obsoletePatient);
-			} catch (Exception e) {
-
-			}
-
-			// then:
-			assertThatObsoletePatientWasNotDeletedAndIsTheActiveOne(mergedPatient);
-			assertThatVisitIsStillAssignedToObsoletePatient(visit, obsoletePatient);
-			assertThatExaminationIsStillAssignedToObsoletePatient(patientExamination, obsoletePatient);
-			assertThatPatientMergedEventWasSent(mergedPatient, obsoletePatient);
+			patientIoOperation.mergePatientHistory(mergedPatient, obsoletePatient);
 		} catch (Exception e) {
-			e.printStackTrace();
-			fail();
+
 		}
+
+		// then:
+		assertThatObsoletePatientWasNotDeletedAndIsTheActiveOne(mergedPatient);
+		assertThatVisitIsStillAssignedToObsoletePatient(visit, obsoletePatient);
+		assertThatExaminationIsStillAssignedToObsoletePatient(patientExamination, obsoletePatient);
+		assertThatPatientMergedEventWasSent(mergedPatient, obsoletePatient);
 	}
 
 	private void assertThatObsoletePatientWasDeletedAndMergedIsTheActiveOne(Patient mergedPatient, Patient obsoletePatient) throws OHException {
