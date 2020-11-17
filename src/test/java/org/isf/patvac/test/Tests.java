@@ -45,6 +45,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.annotation.Transactional;
 
 public class Tests extends OHCoreTestCase {
 
@@ -107,6 +108,7 @@ public class Tests extends OHCoreTestCase {
 	}
 
 	@Test
+	@Transactional // requires active session because of lazy loading patient
 	public void testIoUpdatePatientVaccine() throws Exception {
 		int code = _setupTestPatientVaccine(false);
 		PatientVaccine foundPatientVaccine = patVacIoOperationRepository.findOne(code);
